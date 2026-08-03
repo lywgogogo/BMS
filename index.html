@@ -873,9 +873,9 @@ function renderInsight() {
   // If a cell was just changed, verify independent adjustability
   if (lastChangedCell >= 0) {
     const changed = data.cells[lastChangedCell];
-    const unchangedCells = data.cells.filter((_, i) => i !== lastChangedCell).map(c => `Cell${c.index+1}=${c.vcell.toFixed(2)}V`);
+    const unchangedCells = data.cells.filter((_, i) => i !== lastChangedCell).map(c => `Cell${c.index+1}=${c.vcell.toFixed(3)}V`);
     detailEl.innerHTML = `
-      👆 你刚调节了 <b>Cell ${lastChangedCell+1}</b> → ${changed.vcell.toFixed(2)}V &nbsp;|&nbsp;
+      👆 你刚调节了 <b>Cell ${lastChangedCell+1}</b> → ${changed.vcell.toFixed(3)}V &nbsp;|&nbsp;
       其余 4 节 <b>本次未变</b>，保持各自当前值: ${unchangedCells.join(', ')}<br>
       <span style="font-size:11px;color:#666;">→ AFE 只有 Vcell${lastChangedCell+1} 通道读数变化 → <b>单节独立可调 ✓</b></span>
     `;
@@ -1413,6 +1413,8 @@ let chartViewEnd = null;
 let chartAutoScroll = true;
 let chartDragStart = null;
 let chartDragViewStart = 0;
+let chartYMin = 2.0;         // Y-axis range (adjustable via Ctrl+scroll)
+let chartYMax = 5.0;
 
 // Chart colors
 const CHART_COLORS = ['#e53935','#1e88e5','#43a047','#fb8c00','#8e24aa'];
@@ -1460,7 +1462,8 @@ function drawChart() {
   document.getElementById('chart-view-info').textContent =
     `显示 ${vStart+1}–${vEnd+1} / 共 ${total} 点`;
   document.getElementById('chart-hint').textContent =
-    chartAutoScroll ? '' : '📌 已冻结 (拖拽查看历史 · 点击"自动滚动"恢复)';
+    (chartAutoScroll ? '' : '📌 已冻结 · ') +
+    `Y:${yMin.toFixed(1)}~${yMax.toFixed(1)}V (Ctrl+滚轮调量程)`;
 
   // Auto-scroll button style
   const autoBtn = document.getElementById('btn-auto-scroll');
@@ -1472,19 +1475,23 @@ function drawChart() {
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = '#fafafa'; ctx.fillRect(0, 0, W, H);
 
-  const yMin = 2.0, yMax = 5.0;
+  const yMin = chartYMin, yMax = chartYMax;
   const yToY = (v) => mt + ph * (1 - (v - yMin) / (yMax - yMin));
 
-  // Grid
+  // Grid — dynamic step based on range
+  const yRange = yMax - yMin;
+  const yStep = yRange <= 1.0 ? 0.2 : (yRange <= 2.0 ? 0.5 : 1.0);
   ctx.strokeStyle = '#e8e8e8'; ctx.lineWidth = 0.5;
-  for (let v = 2.0; v <= 5.0; v += 0.5) {
+  for (let v = Math.ceil(yMin / yStep) * yStep; v <= yMax; v += yStep) {
     const y = yToY(v);
     ctx.beginPath(); ctx.moveTo(ml, y); ctx.lineTo(W - mr, y); ctx.stroke();
   }
 
   // Y labels
   ctx.fillStyle = '#666'; ctx.font = '10px Consolas,monospace'; ctx.textAlign = 'right';
-  for (let v = 2.0; v <= 5.0; v += 0.5) ctx.fillText(v.toFixed(1)+'V', ml-6, yToY(v)+4);
+  for (let v = Math.ceil(yMin / yStep) * yStep; v <= yMax; v += yStep) {
+    ctx.fillText(v.toFixed(1)+'V', ml-6, yToY(v)+4);
+  }
 
   // Thresholds
   ctx.setLineDash([6,4]); ctx.lineWidth = 1;
@@ -1557,18 +1564,21 @@ function renderChartLegend() {
     const val = latest ? ((latest.hw || latest.sw)[i] / 1000).toFixed(2) : '—';
     const visible = chartVisibility[i];
     const eye = visible ? '👁' : '🚫';
-    const opacity = visible ? '1' : '0.3';
-    html += `<span class="chart-legend-item" data-cell="${i}"
-                  style="cursor:pointer;opacity:${opacity};color:${CHART_COLORS[i]};font-weight:600;user-select:none;"
+    const opacity = visible ? '1' : '0.4';
+    html += `<button class="chart-legend-item" data-cell="${i}"
+                  style="cursor:pointer;opacity:${opacity};color:${CHART_COLORS[i]};font-weight:600;
+                         background:${visible ? '#f5f5f5' : '#fff'};border:1px solid ${visible ? CHART_COLORS[i] : '#ddd'};
+                         border-radius:14px;padding:3px 12px;font-size:11px;transition:all 0.15s;"
                   title="${visible ? '点击隐藏' : '点击显示'} ${CELL_NAMES[i]}">
                ${eye} ● ${CELL_NAMES[i]} ${val}V
-             </span>`;
+             </button>`;
   }
   el.innerHTML = html;
 
   // Attach click handlers
   el.querySelectorAll('.chart-legend-item').forEach(item => {
     item.addEventListener('click', (e) => {
+      e.preventDefault();
       const cellIdx = parseInt(e.currentTarget.dataset.cell);
       chartVisibility[cellIdx] = !chartVisibility[cellIdx];
       drawChart();
@@ -1888,7 +1898,7 @@ const HELP_CONTENT = {
 <h3>三种调节方式</h3>
 <table>
 <tr><th>方式</th><th>操作</th><th>精度</th><th>场景</th></tr>
-<tr><td>电位器阻值输入</td><td>在"电位器 XXX Ω"处直接输入</td><td>1Ω</td><td>按实际电位器刻度</td></tr>
+<tr><td>电位器阻值输入</td><td>在"电位器 XXX Ω"处直接输入</td><td>0.1Ω</td><td>按实际电位器刻度</td></tr>
 <tr><td>目标电压输入</td><td>蓝色输入框直接输电压值</td><td>0.01V</td><td>设精确阈值 (如 4.25V)</td></tr>
 <tr><td>滑块拖拽</td><td>拖动渐变滑块</td><td>约 5mV</td><td>快速扫范围</td></tr>
 </table>
@@ -1964,12 +1974,13 @@ const HELP_CONTENT = {
 <table>
 <tr><th>操作</th><th>效果</th></tr>
 <tr><td><b>滚轮</b></td><td>缩放时间轴（放大看细节 / 缩小看趋势）</td></tr>
+<tr><td><b>Ctrl + 滚轮</b></td><td>缩放 Y 轴量程（调节电压显示精度，最小 0.3V）</td></tr>
 <tr><td><b>拖拽</b></td><td>平移查看历史数据（自动冻结滚动）</td></tr>
-<tr><td><b>双击</b></td><td>复位 → 回到自动滚动</td></tr>
+<tr><td><b>双击</b></td><td>复位 → 回到自动滚动 + 重置时间轴和 Y 轴</td></tr>
 <tr><td><b>"自动滚动"按钮</b></td><td>切换跟随最新 / 冻结当前视图</td></tr>
-<tr><td><b>"复位"按钮</b></td><td>回到自动滚动 + 重置缩放</td></tr>
+<tr><td><b>"复位"按钮</b></td><td>回到自动滚动 + 重置时间轴和 Y 轴</td></tr>
 <tr><td><b>"清空"按钮</b></td><td>清除所有历史数据 + 重置可见性</td></tr>
-<tr><td><b>点击图例 👁</b></td><td>切换单条波形显示/隐藏</td></tr>
+<tr><td><b>点击图例按钮</b></td><td>切换单条波形显示/隐藏（隐藏后变灰）</td></tr>
 </table>
 
 <h3>波形数据源</h3>
@@ -2082,6 +2093,8 @@ function init() {
     chartAutoScroll = true;
     chartViewStart = null;
     chartViewEnd = null;
+    chartYMin = 2.0;
+    chartYMax = 5.0;
     drawChart();
   });
   document.getElementById('btn-clear-chart').addEventListener('click', () => {
@@ -2099,7 +2112,19 @@ function init() {
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     const total = chartHistory.length;
-    if (total < 2) return;
+      // Ctrl+wheel = Y-axis zoom (adjust voltage range)
+      if (e.ctrlKey) {
+        const R = canvas.getBoundingClientRect();
+        const r = Math.max(0, Math.min(1, (e.clientY - R.top - 22) / (canvas.height - 54)));
+        const cv = chartYMax - r * (chartYMax - chartYMin);
+        const yf = e.deltaY < 0 ? 0.75 : 1.33;
+        const nr = Math.max(0.3, Math.min(10, (chartYMax - chartYMin) * yf));
+        chartYMin = Math.max(0, cv - nr * r);
+        chartYMax = Math.min(10, cv + nr * (1 - r));
+        drawChart();
+        return;
+      }
+      if (total < 2) return;
 
     // Determine current visible window size
     let vStart, vEnd;
@@ -2172,6 +2197,8 @@ function init() {
     chartAutoScroll = true;
     chartViewStart = null;
     chartViewEnd = null;
+    chartYMin = 2.0;
+    chartYMax = 5.0;
     drawChart();
   });
   document.getElementById('btn-toggle-protocol').addEventListener('click', () => {
