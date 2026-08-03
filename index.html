@@ -1463,7 +1463,7 @@ function drawChart() {
     `显示 ${vStart+1}–${vEnd+1} / 共 ${total} 点`;
   document.getElementById('chart-hint').textContent =
     (chartAutoScroll ? '' : '📌 已冻结 · ') +
-    `Y:${yMin.toFixed(1)}~${yMax.toFixed(1)}V (Ctrl+滚轮调量程)`;
+    `Y:${chartYMin.toFixed(1)}~${chartYMax.toFixed(1)}V (Ctrl+滚轮调量程)`;
 
   // Auto-scroll button style
   const autoBtn = document.getElementById('btn-auto-scroll');
