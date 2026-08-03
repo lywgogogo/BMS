@@ -534,7 +534,7 @@
       <span id="chart-view-info" style="font-size:9px;color:#999;"></span>
     </div>
   </div>
-  <div style="text-align:center;font-size:8px;color:#bbb;">滚轮左侧→调Y轴量程 · 滚轮右侧→缩放时间轴 · 拖拽平移 · 双击自适应Y范围 · 点击按钮切换波形</div>
+  <div style="text-align:center;font-size:8px;color:#bbb;">滚轮→调Y轴精度 · 拖拽→平移时间轴 · 双击→自适应Y范围 · 点击按钮→切换波形</div>
 
   <!-- Comparison table -->
   <table class="afe-table" style="margin-top:10px;">
@@ -1475,7 +1475,7 @@ function drawChart() {
     `显示 ${vStart+1}–${vEnd+1} / 共 ${total} 点`;
   document.getElementById('chart-hint').textContent =
     (chartAutoScroll ? '' : '📌 已冻结 · ') +
-    `Y:${chartYMin.toFixed(2)}~${chartYMax.toFixed(2)}V (左侧滚轮调Y · 右侧滚轮调X · 双击自适应)`;
+    `Y:${chartYMin.toFixed(2)}~${chartYMax.toFixed(2)}V (滚轮调精度 · 拖拽平移 · 双击自适应)`;
 
   // Auto-scroll button style
   const autoBtn = document.getElementById('btn-auto-scroll');
@@ -2001,8 +2001,7 @@ const HELP_CONTENT = {
 <table>
 <tr><th>操作</th><th>效果</th></tr>
 <tr><td><b>滚轮</b></td><td>缩放时间轴（放大看细节 / 缩小看趋势）</td></tr>
-<tr><td><b>滚轮 (左侧Y轴区域)</b></td><td>缩放 Y 轴量程（鼠标处电压保持不动，最小 0.2V）</td></tr>
-<tr><td><b>Ctrl + 滚轮</b></td><td>任意位置缩放 Y 轴量程</td></tr>
+<tr><td><b>滚轮</b></td><td>缩放 Y 轴精度（向上滚=放大/精度变高，向下滚=缩小）</td></tr>
 <tr><td><b>拖拽</b></td><td>平移查看历史数据（自动冻结滚动）</td></tr>
 <tr><td><b>双击</b></td><td>自动适配 Y 轴范围（根据可见数据的最小/最大值） + 回到自动滚动</td></tr>
 <tr><td><b>"自动滚动"按钮</b></td><td>切换跟随最新 / 冻结当前视图</td></tr>
@@ -2136,62 +2135,25 @@ function init() {
     renderChartLegend();
   });
 
-  // Chart mouse: wheel zoom (VOFA-style)
+  // Chart mouse: wheel = Y-axis zoom only (VOFA-style)
   const canvas = document.getElementById('chart-canvas');
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
-    const total = chartHistory.length;
 
-    // Detect: scroll near Y-axis label area or Ctrl+scroll → Y-axis zoom
-    const mouseX = e.clientX - canvas.getBoundingClientRect().left;
-    const isYZone = mouseX < 75; // left ~75px = Y-axis zone
-    const yZoom = e.ctrlKey || isYZone;
+    // Scroll → Y-axis zoom (centered on mouse Y position)
+    const R = canvas.getBoundingClientRect();
+    const ml = 60, mt = 22, mb = 32;
+    const ph = canvas.height - mt - mb;
+    const my = e.clientY - R.top;
+    const ratio = Math.max(0, Math.min(1, (my - mt) / ph));
+    const centerV = chartYMax - ratio * (chartYMax - chartYMin);
 
-    if (yZoom) {
-      // Smooth Y-axis zoom centered on mouse Y position
-      const R = canvas.getBoundingClientRect();
-      const ml = 60, mt = 22, mb = 32;
-      const ph = canvas.height - mt - mb;
-      const my = e.clientY - R.top;
-      const ratio = Math.max(0, Math.min(1, (my - mt) / ph));
-      const centerV = chartYMax - ratio * (chartYMax - chartYMin);
-
-      // Scroll toward user (deltaY<0) = zoom in (range shrinks)
-      // Scroll away (deltaY>0) = zoom out (range expands)
-      const factor = e.deltaY < 0 ? 0.85 : 1.18;
-      const newRange = Math.max(0.2, Math.min(10, (chartYMax - chartYMin) * factor));
-      chartYMin = Math.max(0, centerV - newRange * ratio);
-      chartYMax = Math.min(10, centerV + newRange * (1 - ratio));
-      drawChart();
-      return;
-    }
-
-    if (total < 2) return;
-
-    // Determine current visible window size
-    let vStart, vEnd;
-    if (chartAutoScroll) {
-      const win = chartViewStart ? (chartViewEnd - chartViewStart) : Math.min(120, total);
-      vEnd = total - 1;
-      vStart = Math.max(0, vEnd - win + 1);
-    } else {
-      vStart = Math.max(0, chartViewStart || 0);
-      vEnd = Math.min(total - 1, chartViewEnd || (total - 1));
-    }
-    const win = vEnd - vStart + 1;
-
-    // Zoom: deltaY < 0 = zoom in, > 0 = zoom out
-    const factor = e.deltaY < 0 ? 0.7 : 1.4;
-    const newWin = Math.max(10, Math.min(total, Math.round(win * factor)));
-
-    // Keep center point
-    const center = (vStart + vEnd) / 2;
-    const newStart = Math.max(0, Math.round(center - newWin / 2));
-    const newEnd = Math.min(total - 1, newStart + newWin - 1);
-
-    chartAutoScroll = (newEnd >= total - 1); // snap to auto if zoomed to end
-    chartViewStart = newStart;
-    chartViewEnd = newEnd;
+    // Scroll toward user (deltaY<0) → zoom in (range shrinks, precision up)
+    // Scroll away (deltaY>0) → zoom out (range expands)
+    const factor = e.deltaY < 0 ? 0.85 : 1.18;
+    const newRange = Math.max(0.2, Math.min(10, (chartYMax - chartYMin) * factor));
+    chartYMin = Math.max(0, centerV - newRange * ratio);
+    chartYMax = Math.min(10, centerV + newRange * (1 - ratio));
     drawChart();
   }, { passive: false });
 
