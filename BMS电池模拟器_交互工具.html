@@ -534,7 +534,7 @@
       <span id="chart-view-info" style="font-size:9px;color:#999;"></span>
     </div>
   </div>
-  <div style="text-align:center;font-size:8px;color:#bbb;">点击波形按钮切换显示 · 滚轮缩放时间轴 · Ctrl+滚轮调Y轴 · 拖拽平移 · 双击复位</div>
+  <div style="text-align:center;font-size:8px;color:#bbb;">滚轮左侧→调Y轴量程 · 滚轮右侧→缩放时间轴 · 拖拽平移 · 双击自适应Y范围 · 点击按钮切换波形</div>
 
   <!-- Comparison table -->
   <table class="afe-table" style="margin-top:10px;">
@@ -1475,7 +1475,7 @@ function drawChart() {
     `显示 ${vStart+1}–${vEnd+1} / 共 ${total} 点`;
   document.getElementById('chart-hint').textContent =
     (chartAutoScroll ? '' : '📌 已冻结 · ') +
-    `Y:${chartYMin.toFixed(1)}~${chartYMax.toFixed(1)}V (Ctrl+滚轮调量程)`;
+    `Y:${chartYMin.toFixed(2)}~${chartYMax.toFixed(2)}V (左侧滚轮调Y · 右侧滚轮调X · 双击自适应)`;
 
   // Auto-scroll button style
   const autoBtn = document.getElementById('btn-auto-scroll');
@@ -2001,9 +2001,10 @@ const HELP_CONTENT = {
 <table>
 <tr><th>操作</th><th>效果</th></tr>
 <tr><td><b>滚轮</b></td><td>缩放时间轴（放大看细节 / 缩小看趋势）</td></tr>
-<tr><td><b>Ctrl + 滚轮</b></td><td>缩放 Y 轴量程（调节电压显示精度，最小 0.3V）</td></tr>
+<tr><td><b>滚轮 (左侧Y轴区域)</b></td><td>缩放 Y 轴量程（鼠标处电压保持不动，最小 0.2V）</td></tr>
+<tr><td><b>Ctrl + 滚轮</b></td><td>任意位置缩放 Y 轴量程</td></tr>
 <tr><td><b>拖拽</b></td><td>平移查看历史数据（自动冻结滚动）</td></tr>
-<tr><td><b>双击</b></td><td>复位 → 回到自动滚动 + 重置时间轴和 Y 轴</td></tr>
+<tr><td><b>双击</b></td><td>自动适配 Y 轴范围（根据可见数据的最小/最大值） + 回到自动滚动</td></tr>
 <tr><td><b>"自动滚动"按钮</b></td><td>切换跟随最新 / 冻结当前视图</td></tr>
 <tr><td><b>"复位"按钮</b></td><td>回到自动滚动 + 重置时间轴和 Y 轴</td></tr>
 <tr><td><b>"清空"按钮</b></td><td>清除所有历史数据 + 重置可见性</td></tr>
@@ -2135,24 +2136,36 @@ function init() {
     renderChartLegend();
   });
 
-  // Chart mouse: wheel zoom
+  // Chart mouse: wheel zoom (VOFA-style)
   const canvas = document.getElementById('chart-canvas');
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     const total = chartHistory.length;
-      // Ctrl+wheel = Y-axis zoom (adjust voltage range)
-      if (e.ctrlKey) {
-        const R = canvas.getBoundingClientRect();
-        const r = Math.max(0, Math.min(1, (e.clientY - R.top - 22) / (canvas.height - 54)));
-        const cv = chartYMax - r * (chartYMax - chartYMin);
-        const yf = e.deltaY < 0 ? 0.75 : 1.33;
-        const nr = Math.max(0.3, Math.min(10, (chartYMax - chartYMin) * yf));
-        chartYMin = Math.max(0, cv - nr * r);
-        chartYMax = Math.min(10, cv + nr * (1 - r));
-        drawChart();
-        return;
-      }
-      if (total < 2) return;
+
+    // Detect: scroll near Y-axis label area or Ctrl+scroll → Y-axis zoom
+    const mouseX = e.clientX - canvas.getBoundingClientRect().left;
+    const isYZone = mouseX < 75; // left ~75px = Y-axis zone
+    const yZoom = e.ctrlKey || isYZone;
+
+    if (yZoom) {
+      // Smooth Y-axis zoom centered on mouse Y position
+      const R = canvas.getBoundingClientRect();
+      const ml = 60, mt = 22, mb = 32;
+      const ph = canvas.height - mt - mb;
+      const my = e.clientY - R.top;
+      const ratio = Math.max(0, Math.min(1, (my - mt) / ph));
+      const centerV = chartYMax - ratio * (chartYMax - chartYMin);
+
+      // Smooth zoom: small factor per wheel tick
+      const factor = 1 - e.deltaY * 0.0008; // ~1.08x per tick
+      const newRange = Math.max(0.2, Math.min(10, (chartYMax - chartYMin) * factor));
+      chartYMin = Math.max(0, centerV - newRange * ratio);
+      chartYMax = Math.min(10, centerV + newRange * (1 - ratio));
+      drawChart();
+      return;
+    }
+
+    if (total < 2) return;
 
     // Determine current visible window size
     let vStart, vEnd;
@@ -2220,13 +2233,29 @@ function init() {
     canvas.style.cursor = 'grab';
   });
 
-  // Double-click: reset
+  // Double-click: auto-fit Y range to visible data
   canvas.addEventListener('dblclick', () => {
     chartAutoScroll = true;
     chartViewStart = null;
     chartViewEnd = null;
-    chartYMin = 2.0;
-    chartYMax = 5.0;
+
+    // Auto-fit Y: find min/max of all visible cells
+    let dataMin = Infinity, dataMax = -Infinity;
+    for (let i = 0; i < chartHistory.length; i++) {
+      const pt = chartHistory[i];
+      const vals = pt.hw || pt.sw;
+      for (let c = 0; c < 5; c++) {
+        if (!chartVisibility[c]) continue;
+        const v = vals[c] / 1000;
+        if (v < dataMin) dataMin = v;
+        if (v > dataMax) dataMax = v;
+      }
+    }
+    if (dataMin < Infinity) {
+      const pad = Math.max(0.2, (dataMax - dataMin) * 0.15);
+      chartYMin = Math.max(0, dataMin - pad);
+      chartYMax = Math.min(10, dataMax + pad);
+    }
     drawChart();
   });
   document.getElementById('btn-toggle-protocol').addEventListener('click', () => {
