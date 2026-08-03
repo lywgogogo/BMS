@@ -522,7 +522,7 @@
       <span id="chart-view-info" style="font-size:9px;color:#999;"></span>
     </div>
   </div>
-  <div style="text-align:center;font-size:8px;color:#bbb;">点击图例 👁 切换波形 · 滚轮缩放 · 拖拽平移 · 双击复位</div>
+  <div style="text-align:center;font-size:8px;color:#bbb;">点击波形按钮切换显示 · 滚轮缩放时间轴 · Ctrl+滚轮调Y轴 · 拖拽平移 · 双击复位</div>
 
   <!-- Comparison table -->
   <table class="afe-table" style="margin-top:10px;">
@@ -1566,11 +1566,13 @@ function renderChartLegend() {
     const eye = visible ? '👁' : '🚫';
     const opacity = visible ? '1' : '0.4';
     html += `<button class="chart-legend-item" data-cell="${i}"
-                  style="cursor:pointer;opacity:${opacity};color:${CHART_COLORS[i]};font-weight:600;
-                         background:${visible ? '#f5f5f5' : '#fff'};border:1px solid ${visible ? CHART_COLORS[i] : '#ddd'};
-                         border-radius:14px;padding:3px 12px;font-size:11px;transition:all 0.15s;"
-                  title="${visible ? '点击隐藏' : '点击显示'} ${CELL_NAMES[i]}">
-               ${eye} ● ${CELL_NAMES[i]} ${val}V
+                  style="cursor:pointer;opacity:${opacity};color:${CHART_COLORS[i]};font-weight:700;
+                         background:${visible ? CHART_COLORS[i] + '18' : '#fafafa'};border:2px solid ${visible ? CHART_COLORS[i] : '#ccc'};
+                         border-radius:16px;padding:5px 14px;font-size:12px;transition:all 0.15s;min-width:120px;"
+                  onmouseover="this.style.transform='scale(1.08)';this.style.boxShadow='0 2px 8px rgba(0,0,0,0.15)';"
+                  onmouseout="this.style.transform='scale(1)';this.style.boxShadow='none';"
+                  title="点击切换 ${CELL_NAMES[i]} 波形 (${visible ? '显示中' : '已隐藏'})">
+               ${eye} ● ${CELL_NAMES[i]} <b>${val}V</b>
              </button>`;
   }
   el.innerHTML = html;
