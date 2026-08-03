@@ -638,10 +638,10 @@ function renderSliders() {
         Vout = <b style="color:#2e7d32;">${vout.toFixed(2)}V</b> (OUT对地) &nbsp;|&nbsp; Vcell = <b style="color:#1565c0;">${c.vcell.toFixed(3)}V</b> (OUT−ADJ)
       </div>
       <div class="cell-r2">
-        R2 = <b>${c.r2}Ω</b> (固定200Ω + 电位器
+        R2 = <b>${c.r2.toFixed(1)}Ω</b> (固定200Ω + 电位器
         <input type="number" class="pot-input" data-index="${i}"
-               value="${c.r2Pot}" min="0" max="${R2_POT_MAX}" step="1"
-               style="width:52px;font-size:12px;font-family:Consolas,monospace;text-align:center;border:1px solid #bbb;border-radius:3px;padding:2px 4px;"> Ω)
+               value="${c.r2Pot.toFixed(1)}" min="0" max="${R2_POT_MAX}" step="0.1"
+               style="width:60px;font-size:12px;font-family:Consolas,monospace;text-align:center;border:1px solid #bbb;border-radius:3px;padding:2px 4px;"> Ω)
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         <input type="range" min="0" max="${R2_POT_MAX}" value="${c.r2Pot}" step="1"
@@ -675,9 +675,9 @@ function renderSliders() {
     inp.addEventListener('change', (e) => {
       const idx = parseInt(e.target.dataset.index);
       lastChangedCell = idx;
-      let v = parseInt(e.target.value);
+      let v = parseFloat(e.target.value);
       if (isNaN(v)) v = potValues[idx];
-      potValues[idx] = Math.max(0, Math.min(R2_POT_MAX, v));
+      potValues[idx] = Math.max(0, Math.min(R2_POT_MAX, Math.round(v * 10) / 10));
       renderAll();
     });
   });
@@ -875,9 +875,9 @@ function renderInsight() {
     const changed = data.cells[lastChangedCell];
     const unchangedCells = data.cells.filter((_, i) => i !== lastChangedCell).map(c => `Cell${c.index+1}=${c.vcell.toFixed(2)}V`);
     detailEl.innerHTML = `
-      👆 你刚调节了 <b>Cell ${lastChangedCell+1}</b> (现在 ${changed.vcell.toFixed(2)}V) &nbsp;|&nbsp;
-      其他 4 节: ${unchangedCells.join(', ')} 全部<b>未变</b><br>
-      <span style="font-size:11px;color:#666;">→ AFE 只有 Vcell${lastChangedCell+1} 通道读数变化，其余 4 通道不变 = <b>单节独立可调 ✓</b></span>
+      👆 你刚调节了 <b>Cell ${lastChangedCell+1}</b> → ${changed.vcell.toFixed(2)}V &nbsp;|&nbsp;
+      其余 4 节 <b>本次未变</b>，保持各自当前值: ${unchangedCells.join(', ')}<br>
+      <span style="font-size:11px;color:#666;">→ AFE 只有 Vcell${lastChangedCell+1} 通道读数变化 → <b>单节独立可调 ✓</b></span>
     `;
     return;
   }
