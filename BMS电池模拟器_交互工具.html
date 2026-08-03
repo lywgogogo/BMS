@@ -2156,8 +2156,8 @@ function init() {
       const ratio = Math.max(0, Math.min(1, (my - mt) / ph));
       const centerV = chartYMax - ratio * (chartYMax - chartYMin);
 
-      // Smooth zoom: small factor per wheel tick
-      const factor = 1 - e.deltaY * 0.0008; // ~1.08x per tick
+      // Smooth zoom: scroll up=zoom in (range shrinks), down=zoom out
+      const factor = 1 + e.deltaY * 0.0008;
       const newRange = Math.max(0.2, Math.min(10, (chartYMax - chartYMin) * factor));
       chartYMin = Math.max(0, centerV - newRange * ratio);
       chartYMax = Math.min(10, centerV + newRange * (1 - ratio));
