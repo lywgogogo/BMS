@@ -396,6 +396,107 @@
     box-shadow:0 2px 8px rgba(0,0,0,0.15); transition:all 0.2s;
   }
   .help-float-btn:hover { background:#0d47a1; transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,0.2); }
+
+  /* ===== VISUAL REFRESH ===== */
+  :root {
+    --surface-soft: #f7f9fc;
+    --ink: #14213d;
+    --muted: #6b778c;
+    --line-soft: #e7ebf2;
+    --navy: #10213f;
+    --accent: #3b82f6;
+    --accent-purple: #7c3aed;
+    --shadow-soft: 0 14px 34px rgba(30, 55, 90, 0.10);
+  }
+  body {
+    background:
+      radial-gradient(circle at 8% 0%, rgba(59,130,246,.12), transparent 28%),
+      radial-gradient(circle at 92% 8%, rgba(124,58,237,.08), transparent 24%),
+      var(--surface-soft);
+    color: var(--ink);
+    padding: 30px 28px 50px;
+  }
+  .container { max-width: 1440px; }
+  .header {
+    text-align: left;
+    margin-bottom: 22px;
+    padding: 28px 34px 30px;
+    border-radius: 22px;
+    color: #fff;
+    background: linear-gradient(135deg, #10213f 0%, #193867 58%, #2563a8 100%);
+    box-shadow: 0 18px 38px rgba(16,33,63,.22);
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after { content: ''; position: absolute; width: 360px; height: 360px; right: -120px; top: -210px; border-radius: 50%; background: rgba(125,211,252,.14); pointer-events: none; }
+  .header-topline { display: flex; align-items: center; gap: 11px; position: relative; z-index: 1; margin-bottom: 24px; }
+  .brand-mark { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.26); border-radius: 11px; background: rgba(255,255,255,.12); color: #7dd3fc; font-size: 18px; box-shadow: inset 0 1px 0 rgba(255,255,255,.16); }
+  .header-eyebrow { color: rgba(255,255,255,.68); font-size: 10px; letter-spacing: .18em; font-weight: 700; }
+  .header-status { margin-left: auto; padding: 6px 11px; border: 1px solid rgba(255,255,255,.18); border-radius: 999px; background: rgba(255,255,255,.09); color: rgba(255,255,255,.78); font-size: 11px; }
+  .header-status::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: #fbbf24; box-shadow: 0 0 0 3px rgba(251,191,36,.14); }
+  .header h1 { position: relative; z-index: 1; color: #fff; font-size: clamp(25px, 3vw, 38px); letter-spacing: -.03em; margin-bottom: 9px; }
+  .header h1 span { color: #93c5fd; font-weight: 500; }
+  .header .sub { position: relative; z-index: 1; max-width: 760px; color: rgba(255,255,255,.72); font-size: 13px; line-height: 1.7; }
+  .main-grid { grid-template-columns: 340px minmax(0, 1fr) 350px; gap: 18px; }
+  .card { background: rgba(255,255,255,.94); border: 1px solid rgba(218,226,238,.95); border-radius: 18px; padding: 22px; box-shadow: var(--shadow-soft); backdrop-filter: blur(8px); }
+  .card h3 { color: var(--ink); font-size: 14px; letter-spacing: .01em; padding-bottom: 13px; margin-bottom: 16px; border-bottom: 1px solid var(--line-soft); position: relative; }
+  .card h3::after { content: ''; position: absolute; bottom: -1px; left: 0; width: 44px; height: 3px; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent-purple)); }
+  .card h3 .dot { width: 10px; height: 10px; box-shadow: 0 0 0 4px rgba(59,130,246,.10); }
+  .formula-bar { color: rgba(255,255,255,.76); background: linear-gradient(120deg, #172b50, #214b80); border: 0; border-radius: 16px; padding: 18px 22px; text-align: left; box-shadow: 0 12px 26px rgba(25,58,103,.18); }
+  .formula-bar .big { color: #fff; font-size: 18px; }
+  .formula-bar b { color: #7dd3fc; }
+  .formula-bar span[style] { color: rgba(255,255,255,.60) !important; }
+  .cell-item { border-color: var(--line-soft); border-radius: 14px; padding: 15px; background: #fff; box-shadow: 0 5px 14px rgba(30,55,90,.04); }
+  .cell-item:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(30,55,90,.09); }
+  .cell-item.normal { border-color: #cdebd5; background: linear-gradient(135deg,#fff,#f5fcf7); }
+  .cell-item.undervoltage { background: linear-gradient(135deg,#fff,#fff9ef); }
+  .cell-item.overvoltage { background: linear-gradient(135deg,#fff,#fff4f5); }
+  .cell-voltage { font-size: 23px; letter-spacing: -.04em; }
+  .cell-r2 { color: var(--muted); }
+  input[type=range] { height: 7px; background: linear-gradient(to right, #f59e0b 0%, #22c55e 50%, #ef4444 100%); }
+  input[type=range]::-webkit-slider-thumb { width: 22px; height: 22px; border: 3px solid #fff; background: var(--accent); box-shadow: 0 2px 8px rgba(37,99,235,.30); }
+  .pot-input, .volt-target { border-radius: 8px !important; border-color: #cbd5e1 !important; background: #f8fafc; }
+  .battery-cell { width: 214px; height: 62px; border-radius: 12px; box-shadow: 0 7px 14px rgba(30,55,90,.08); }
+  .bc-normal { background: linear-gradient(135deg,#effcf3,#dff7e7); border-color: #76c893; }
+  .bc-under { background: linear-gradient(135deg,#fff8eb,#ffe7bc); }
+  .bc-over { background: linear-gradient(135deg,#fff0f2,#ffd9dd); }
+  .stack-terminal { background: linear-gradient(90deg,#233b61,#172b50); border-radius: 9px; height: 28px; line-height: 28px; }
+  .stack-node { color: #2563a8; }
+  .node-tag { color: #2563a8; background: rgba(255,255,255,.90); border: 1px solid #dbeafe; border-radius: 6px; }
+  .afe-table { border: 1px solid var(--line-soft); border-radius: 12px; overflow: hidden; }
+  .afe-table th { background: #1e3155; padding: 10px 9px; }
+  .afe-table td { padding: 10px 9px; border-bottom-color: #edf1f6; }
+  .afe-table tr:hover td { background: #f7faff; }
+  .insight { background: linear-gradient(135deg,#eef5ff,#f5f1ff); border-left: 4px solid var(--accent); border-radius: 12px; padding: 15px 18px; box-shadow: 0 8px 18px rgba(59,130,246,.08); }
+  .insight strong { color: #244b8f; }
+  .serial-panel { border-color: #cbdcf4; box-shadow: 0 18px 38px rgba(38,88,150,.13); }
+  .serial-panel > h3 { color: #18345d; }
+  .serial-btn { border-color: #cbd5e1; border-radius: 9px; padding: 8px 13px; color: #334155; background: #fff; box-shadow: 0 2px 5px rgba(30,55,90,.05); transition: transform .15s, box-shadow .15s, background .15s; }
+  .serial-btn:hover { background: #f6f9ff; transform: translateY(-1px); box-shadow: 0 5px 12px rgba(30,55,90,.10); }
+  #btn-select-port { color: #fff; background: #2563eb; border-color: #2563eb; box-shadow: 0 6px 14px rgba(37,99,235,.25); }
+  #btn-select-port:hover { background: #1d4ed8; }
+  .serial-sel { border-color: #cbd5e1; border-radius: 8px; padding: 7px 8px; color: #334155; }
+  #serial-status { color: #64748b !important; padding: 6px 10px; border-radius: 999px; background: #f1f5f9; }
+  #chart-canvas { border: 1px solid #d9e3f1 !important; border-radius: 13px !important; box-shadow: inset 0 0 0 1px rgba(255,255,255,.8), 0 8px 18px rgba(30,55,90,.06); }
+  #chart-hint { color: #8090a7 !important; }
+  .chart-legend-item { border: 1px solid #e5eaf2; background: #f8fafc; border-radius: 999px; padding: 7px 13px; }
+  .chart-legend-item:hover { transform: translateY(-1px); box-shadow: 0 5px 12px rgba(30,55,90,.10); }
+  .preset-btn { border-color: #d8e0eb; border-radius: 10px; background: #f8fafc; color: #334155; padding: 10px 11px; }
+  .preset-btn:hover { background: #eef5ff; border-color: #93c5fd; }
+  .preset-btn .pdesc { color: #8793a6; }
+  .help-float-btn { top: 28px; right: 28px; color: #fff; background: #2563eb; border: 1px solid #2563eb; box-shadow: 0 8px 18px rgba(37,99,235,.24); }
+  .help-float-btn:hover { background: #1d4ed8; }
+  @media (max-width: 700px) {
+    body { padding: 16px 12px 30px; }
+    .header { padding: 22px 20px 24px; border-radius: 17px; }
+    .header-topline { margin-bottom: 18px; }
+    .header-eyebrow { font-size: 8px; letter-spacing: .12em; }
+    .header-status { display: none; }
+    .header h1 { font-size: 25px; }
+    .formula-bar { padding: 15px; }
+    .card { padding: 17px; border-radius: 15px; }
+    .help-float-btn { top: 12px; right: 12px; padding: 7px 11px; }
+  }
 </style>
 </head>
 <body>
@@ -425,9 +526,14 @@
 <div class="container">
 
 <div class="header">
-  <h1>BMS 电池模拟器 · LM317 浮地串联 — 交互式仿真</h1>
+  <div class="header-topline">
+    <span class="brand-mark">⚡</span>
+    <span class="header-eyebrow">BMS LAB · INTERACTIVE CONTROL DESK</span>
+    <span class="header-status">浏览器端运行</span>
+  </div>
+  <h1>BMS 电池模拟器 <span>· LM317 浮地串联</span></h1>
   <p class="sub">
-    拖动任意电位器滑块改变单节电压 · 右侧看 AFE 差分读数 · 下方预设按钮模拟异常工况
+    拖动电位器调节单节电压，观察电池组节点电势与 AFE 差分采样结果
   </p>
 </div>
 
@@ -498,7 +604,7 @@
 </div><!-- /main-grid -->
 
 <!-- ===== HARDWARE SERIAL PANEL (full width) ===== -->
-<div class="card" id="serial-panel" style="margin-top:20px;">
+<div class="card serial-panel" id="serial-panel" style="margin-top:20px;">
   <h3><span class="dot" style="background:#00838f"></span> 串口连接 · 实时波形 &nbsp;<span style="font-size:10px;color:#999;font-weight:400;">协议: {"v":[mV×5],"chg":1,"dsg":1,"bal":0}\r\n (不变)</span></h3>
 
   <div id="serial-config" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px;">
