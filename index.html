@@ -1428,6 +1428,37 @@ let chartDragViewStart = 0;
 let chartYMin = 2.0;         // Y-axis range (adjustable via Ctrl+scroll)
 let chartYMax = 5.0;
 
+function calculateChartYZoom(yMin, yMax, anchorRatio, deltaY) {
+  const MIN_VOLTAGE = 0;
+  const MAX_VOLTAGE = 10;
+  const MIN_RANGE = 0.2;
+  const ratio = Math.max(0, Math.min(1, anchorRatio));
+  const currentRange = yMax - yMin;
+  const factor = deltaY < 0 ? 0.85 : (deltaY > 0 ? 1.18 : 1);
+  const newRange = Math.max(MIN_RANGE, Math.min(MAX_VOLTAGE - MIN_VOLTAGE, currentRange * factor));
+  const anchorVoltage = yMax - ratio * currentRange;
+
+  // ratio is measured from the plot top: keep the voltage under the mouse fixed.
+  let min = anchorVoltage - newRange * (1 - ratio);
+  let max = anchorVoltage + newRange * ratio;
+
+  // Shift the complete range at a boundary instead of clipping only one end.
+  if (min < MIN_VOLTAGE) {
+    max += MIN_VOLTAGE - min;
+    min = MIN_VOLTAGE;
+  }
+  if (max > MAX_VOLTAGE) {
+    min -= max - MAX_VOLTAGE;
+    max = MAX_VOLTAGE;
+  }
+
+  return {
+    min: Math.max(MIN_VOLTAGE, min),
+    max: Math.min(MAX_VOLTAGE, max),
+  };
+}
+// END calculateChartYZoom
+
 // Chart colors
 const CHART_COLORS = ['#e53935','#1e88e5','#43a047','#fb8c00','#8e24aa'];
 const CELL_NAMES = ['Cell1','Cell2','Cell3','Cell4','Cell5'];
@@ -2146,14 +2177,9 @@ function init() {
     const ph = canvas.height - mt - mb;
     const my = e.clientY - R.top;
     const ratio = Math.max(0, Math.min(1, (my - mt) / ph));
-    const centerV = chartYMax - ratio * (chartYMax - chartYMin);
-
-    // Scroll toward user (deltaY<0) → zoom in (range shrinks, precision up)
-    // Scroll away (deltaY>0) → zoom out (range expands)
-    const factor = e.deltaY < 0 ? 0.85 : 1.18;
-    const newRange = Math.max(0.2, Math.min(10, (chartYMax - chartYMin) * factor));
-    chartYMin = Math.max(0, centerV - newRange * ratio);
-    chartYMax = Math.min(10, centerV + newRange * (1 - ratio));
+    const nextRange = calculateChartYZoom(chartYMin, chartYMax, ratio, e.deltaY);
+    chartYMin = nextRange.min;
+    chartYMax = nextRange.max;
     drawChart();
   }, { passive: false });
 
